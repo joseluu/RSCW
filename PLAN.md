@@ -45,7 +45,10 @@ host/                                outils et tests sur PC (gcc)
   Makefile
   rscw_host.cpp                      même interface que rscw d'origine : audio u8 8 kHz sur stdin → texte sur stdout
   shim/fftw3.h, shim/sys/soundcard.h pour compiler le rscw.c d'origine sans FFTW (référence)
-  tests/                             scripts de non-régression et de mesure
+  decim_test.cpp, cwgen.h            chaîne 48 kHz -> décimation -> file -> cœur, CER, alignement du scope
+  sim/                               simulation du sketch complet (bouchons Arduino/OpenAudio/écran)
+  tests/                             equiv.sh (équivalence), sim_test.sh (harnais)
+tools/teensy_local_build.sh          compilation arm-gcc sans paquet PJRC (dépannage)
 .github/workflows/build.yml          CI : tests PC + `arduino-cli compile` pour teensy40
 ```
 
@@ -121,7 +124,10 @@ l'algorithme est validé sur PC :
 4. **Charge CPU / mémoire** : budget estimé et rapporté par `status` (temps max d'un appel de traitement,
    profondeur max de la file, taille max du pool) ; occupation RAM lue dans la sortie de
    `arduino-cli compile`.
-5. **Sur banc** (à faire par l'utilisateur, non faisable ici) : flash, `status` → `Decoder: RSCW …`,
+5. **Simulation du sketch complet** (ajoutée en cours de route) : le vrai `RSCW_Teensy.ino` compilé
+   sur PC avec des bouchons Arduino/OpenAudio/écran (`host/sim`), alimenté en blocs audio de 48 kHz
+   et piloté par commandes série — vérifie le harnais de bout en bout (`host/tests/sim_test.sh`).
+6. **Sur banc** (à faire par l'utilisateur, non faisable ici) : flash, `status` → `Decoder: RSCW …`,
    CER face au codeur `Codeur_CW_V1_5_T4` (même banc que Morse_decode_coherent).
 
 ## 5. Étapes
@@ -132,7 +138,8 @@ l'algorithme est validé sur PC :
 4. Tampons réduits + pool de messages ; re-test d'équivalence ; mesure du pire cas.
 5. Objet audio (décimation, file, sorties) ; test PC du décimateur.
 6. Sketch harnais ; workflow CI `arduino-cli compile` ; corriger jusqu'au vert.
-7. Documentation : README.md, HARNAIS.md adapté, STATUT.md final (résultats chiffrés, reste à faire).
+7. Simulation PC du sketch complet, intégrée à la CI.
+8. Documentation : README.md, HARNAIS.md adapté, STATUT.md final (résultats chiffrés, reste à faire).
 
 ## 6. Hors périmètre (pistes)
 
