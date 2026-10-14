@@ -1,0 +1,14 @@
+RSCW is a Linux/Unix program for decoding morse signals using the
+computer's sound card. It has been written/optimized for digging weak
+signals out of the noise. However, it can only handle signals with
+perfect timing, which in practice means machine-sent signals. Furthermore,
+the user must specify the speed (words per minute); the program cannot
+(yet) determine this automatically from the received signal. As a
+final inconvenience, RSCW introduces quite a bit of delay: the decoding
+lags the reception by about 2 seconds. As a consequence, RSCW is not a
+general-purpose morse decoder that can replace a skilled operator in say
+a contest. However, it is quite useful for e.g. the automatic reception
+of telemetry from amateur-radio satellites.
+
+See https://www.pa3fwm.nl/software/rscw/ for more documentation.
+
