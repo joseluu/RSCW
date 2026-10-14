@@ -1,0 +1,51 @@
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  host-tests:
+    name: Tests PC (équivalence avec le rscw d'origine)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compilation (rscw d'origine, noisycw, cœur porté)
+        run: make -C host all
+      - name: Équivalence rscw_host / rscw d'origine
+        run: host/tests/equiv.sh
+      - name: Chaîne 48 kHz -> décimation -> file -> cœur
+        run: host/build/decim_test 20 900 3
+
+  teensy40:
+    name: arduino-cli compile (Teensy 4.0)
+    runs-on: ubuntu-latest
+    env:
+      PJRC_INDEX: https://www.pjrc.com/teensy/package_teensy_index.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Core Teensy
+        run: |
+          arduino-cli core update-index --additional-urls "$PJRC_INDEX"
+          arduino-cli core install teensy:avr --additional-urls "$PJRC_INDEX"
+          arduino-cli core list
+      - name: Bibliothèques hors Teensyduino (commits épinglés, voir README.md)
+        run: |
+          mkdir -p ext-libs
+          clone() { git clone -q "https://github.com/$1.git" "ext-libs/$(basename $1)" && git -C "ext-libs/$(basename $1)" checkout -q "$2"; }
+          clone chipaudette/OpenAudio_ArduinoLibrary 1dbecf11ca7db700f3f25b2e8f2ed383962a684b
+          clone KurtE/ILI9341_t3n 3e7ed8c88d75a9fa7d376ae9340ee49decf53fb8
+          clone luni64/EncoderTool 102db9be68c0ad8b166f408231c83a4696b4f442
+          clone thomasfredericks/Bounce2 6545c10e64c13a2f374930b383043de40436eb0d
+      - name: Compilation
+        run: |
+          arduino-cli compile --fqbn teensy:avr:teensy40 --libraries ext-libs \
+            --warnings default --output-dir build-teensy40 RSCW_Teensy 2>&1 | tee compile.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RSCW_Teensy-teensy40
+          path: |
+            build-teensy40/*.hex
+            compile.log

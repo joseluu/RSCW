@@ -45,16 +45,13 @@ static RSCW_BIGBUF float g_bsi[Rscw::BSMASK + 1];
 static RSCW_BIGBUF float g_bsq[Rscw::BSMASK + 1];
 static RSCW_BIGBUF float g_bf[Rscw::BFMASK + 1];
 static RSCW_BIGBUF float g_bm[Rscw::BMMASK + 1];
-static RSCW_BIGBUF double g_fftin[Rscw::FFTBLOCKSIZE];
 static RSCW_BIGBUF double g_fftz[Rscw::FFTBLOCKSIZE];
-static RSCW_BIGBUF double g_fftre[Rscw::FFTBLOCKSIZE / 2 + 1];
-static RSCW_BIGBUF double g_fftim[Rscw::FFTBLOCKSIZE / 2 + 1];
 
 Rscw::Rscw()
    : WPM(22), fmode(STRONGEST), Fmin(1), Fmax(SAMP / 2 - 1), ffmin(1), ffmax(SAMP / 2 - 1),
      lastSearchOk(false), onChar(0), onCharCtx(0),
      br(g_br), bdi(g_bdi), bdq(g_bdq), bsi(g_bsi), bsq(g_bsq), bf(g_bf), bm(g_bm),
-     fftin(g_fftin), fftz(g_fftz), fftre(g_fftre), fftim(g_fftim),
+     fftz(g_fftz),
      nbranch(0), tree(0), ntails(0), freeMsgs(0), nmsgs(0), msgHigh(0), msgOverflow(0),
      msgs(0), nchars(0)
 {
@@ -73,6 +70,16 @@ void Rscw::setWpm(float w)
    if (w < WPM_MIN) w = WPM_MIN;
    if (w > WPM_MAX) w = WPM_MAX;
    WPM = w;
+   makePhaseTable();
+}
+
+/* table de l'estimation de phase de l'horloge bit : cos/sin(i*M_PI/DOTLEN), ne dépend que de WPM */
+void Rscw::makePhaseTable()
+{
+   for (int i = -PHTAB/2; i < PHTAB/2; i++) {
+      phCos[i+PHTAB/2] = cos(i*M_PI/DOTLEN);
+      phSin[i+PHTAB/2] = sin(i*M_PI/DOTLEN);
+   }
 }
 
 void Rscw::setRange(double fmin, double fmax)
@@ -95,6 +102,7 @@ void Rscw::reset()
    nmsgs = 0;
    msgs = 0;
    for (uint i = 0; i <= BHMASK; i++) { bH[i].t = -0x40000000; bH[i].soft = 0; bH[i].thr = 0; }
+   makePhaseTable();
    bhw = 0;
 }
 
@@ -129,10 +137,10 @@ double Rscw::search_carrier(uint bri, int num)
    int dcd;
 
    /* apply a simple triangular windowing function */
-   for (i=0; i<num/2; i++) fftin[i]=br[(bri+i)&BRMASK]*((i+1)/(num/2.0));
-   for (i=num/2; i<num; i++) fftin[i]=br[(bri+i)&BRMASK]*((num-i)/(num/2.0));
-   /* perform the fft */
-   rscw_rfft(fftin, num, fftz, fftre, fftim);
+   for (i=0; i<num/2; i++) fftz[i]=br[(bri+i)&BRMASK]*((i+1)/(num/2.0));
+   for (i=num/2; i<num; i++) fftz[i]=br[(bri+i)&BRMASK]*((num-i)/(num/2.0));
+   /* perform the fft ; en sortie fftz[2i] = |X_i|^2 (voir rscw_fft.h) */
+   rscw_rfft_power_inplace(fftz, num);
 
    /* search the peak within the allowed range */
    /* (rscw.c calcule fftresult[i] = out[i]^2 + out[num-i]^2 pour 1 <= i < num/2-1) */
@@ -140,7 +148,7 @@ double Rscw::search_carrier(uint bri, int num)
    avg=0;
    imin=ffmin/df; imax=ffmax/df;
    for (i=imin; i<=imax; i++) {
-      double p = (i>=1 && i<num/2-1) ? fftre[i]*fftre[i]+fftim[i]*fftim[i] : 0;
+      double p = (i>=1 && i<num/2-1) ? fftz[2*i] : 0;
       a = sqrt(p);
       if (a>max) { iargmax=i; max=a; }
       avg +=a;
@@ -693,8 +701,9 @@ void Rscw::push(float sample)
       i0 = (bmw-1-(int)DOTLEN/2);
       for (i=-DOTLEN/2;i<=DOTLEN/2;i++) {
          s = bm[(i0+i)&BMMASK];
-         si += s * cos(i*M_PI/DOTLEN);
-         sq += s * sin(i*M_PI/DOTLEN);
+         /* cos/sin(i*M_PI/DOTLEN) précalculés dans reset() (mêmes appels, mêmes valeurs) */
+         si += s * phCos[i+PHTAB/2];
+         sq += s * phSin[i+PHTAB/2];
       }
       ph = atan2((double)sq,(double)si);
       if ((ph>=0 && prevph<0) || (ph<0 && prevph>=0)) {

@@ -124,10 +124,12 @@ private:
    float by[BYMASK + 1]; int bY[BYMASK + 1]; unsigned byw, byr; int byphase;
    float bt[BTMASK + 1]; unsigned btw, btr; int bT[BTMASK + 1]; int btphase;
    float prevph;
+   static const int PHTAB = 512;         /* |i| <= DOTLEN/2 <= 120 à 5 WPM */
+   double phCos[PHTAB], phSin[PHTAB];
    BitHist bH[BHMASK + 1]; unsigned bhw;
 
    /* recherche de porteuse */
-   double *fftin, *fftz, *fftre, *fftim;
+   double *fftz;                         /* FFT en place (rscw_rfft_power_inplace) */
 
    /* arbre Morse et décodeur */
    Branch branchPool[128]; int nbranch;
@@ -149,6 +151,7 @@ private:
    void decision(Branch *b);
    void decide(int phase);
    void init_buffers();
+   void makePhaseTable();
 };
 
 #endif
