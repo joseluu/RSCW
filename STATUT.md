@@ -20,7 +20,7 @@ Plan : [PLAN.md](PLAN.md). Ce fichier est mis à jour à chaque étape (le plus 
 1. Flasher (`.hex` dans l'artefact CI `RSCW_Teensy-teensy40`, ou `arduino-cli upload`) et vérifier
    l'identité : `status` → `Decoder: RSCW 0.1.0 …`.
 2. Vérifier dans `status` : `queue_drop=0` (le traitement suit le temps réel), `msgovf=0`,
-   `proc_max_us` (durée de la rafale de traitement toutes les 0,5 s ; estimée < 100 ms à 5 WPM),
+   `proc_max_us` (durée de la rafale de traitement toutes les 0,5 s ; estimée à quelques dizaines de ms),
    `cpu` (interruption audio).
 3. Codeur à 20 WPM, 900 Hz : `set wpm 20`, `log on`, mesurer le CER selon le SNR du codeur ; une
    capture `scope` doit montrer la trace magenta (bit RSCW) calée sur la cyan (pin 15).
@@ -67,9 +67,13 @@ Plan : [PLAN.md](PLAN.md). Ce fichier est mis à jour à chaque étape (le plus 
   d'enveloppe idéal avec seuil au milieu : l'écart vient de l'estimation du seuil sur 11 bits et de
   la gigue de l'horloge bit.
 - Aux vitesses lentes (5–10 WPM) le rscw d'origine perd des points en début de caractère même à
-  fort SNR (« GARIS », « R1FGV ») — même texte que le portage. Hypothèse : la porteuse est estimée au
-  pas de la FFT (0,98 Hz) ; l'erreur de fréquence (jusqu'à 0,5 Hz) fait tourner la phase pendant la
-  moyenne cohérente sur un point, d'autant plus que le point est long.
+  fort SNR (« GARIS », « R1FGV ») — même texte que le portage ; CER ≈ 9–12 % à 10 WPM / 20 dB contre
+  ~1 % à 20–30 WPM. Hypothèse testée et **écartée** : la porteuse estimée au pas de la FFT (0,98 Hz).
+  Une interpolation parabolique du pic (essai, retiré du code) donne des CER identiques à 10 WPM sur
+  5 fréquences de porteuse (dont 900,5 Hz, entre deux pas). Cause non identifiée.
+- Charge mesurée sur PC (x86) : rafale de traitement toutes les 0,5 s de 2,5 ms au pire (5 WPM),
+  1 ms à 20 WPM ; moyenne 0,25 % d'un cœur. Sur le M7 à 600 MHz, attendre ~10 à 20× plus : quelques
+  dizaines de ms par rafale, pour une file de 500 ms.
 - Pistes d'amélioration, **à faire en option désactivée par défaut** pour garder l'équivalence :
   interpolation parabolique du pic FFT, seuil sur une fenêtre plus longue, horloge bit plus lissée.
 

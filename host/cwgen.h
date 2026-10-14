@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-static const char *cwMorse(char ch)
+static inline const char *cwMorse(char ch)
 {
    static const char *tab[][2] = {
       {"A",".-"},{"B","-..."},{"C","-.-."},{"D","-.."},{"E","."},{"F","..-."},{"G","--."},{"H","...."},
@@ -21,7 +21,7 @@ static const char *cwMorse(char ch)
 }
 
 /* séquence de points (1 = porteuse) comme noisycw : élément + 1 espace, lettre + 2, mot + 4 */
-static std::vector<char> cwKeying(const char *txt)
+static inline std::vector<char> cwKeying(const char *txt)
 {
    std::vector<char> k;
    for (const char *p = txt; *p; p++) {
@@ -66,7 +66,7 @@ struct CwGen {
    }
 };
 
-static int cwEditDistance(const std::string &a, const std::string &b)
+static inline int cwEditDistance(const std::string &a, const std::string &b)
 {
    std::vector<int> d(b.size() + 1), e(b.size() + 1);
    for (size_t j = 0; j <= b.size(); j++) d[j] = j;
@@ -81,7 +81,7 @@ static int cwEditDistance(const std::string &a, const std::string &b)
 
 /* distance d'édition entre ref et la meilleure sous-chaîne de got (les caractères décodés dans le
  * bruit avant et après le message ne comptent pas : RSCW décode toujours quelque chose) */
-static int cwInfixDistance(const std::string &ref, const std::string &got)
+static inline int cwInfixDistance(const std::string &ref, const std::string &got)
 {
    std::vector<int> d(got.size() + 1, 0), e(got.size() + 1);
    for (size_t i = 1; i <= ref.size(); i++) {
@@ -95,7 +95,7 @@ static int cwInfixDistance(const std::string &ref, const std::string &got)
    return best;
 }
 
-static std::string cwSqueeze(const std::string &s)
+static inline std::string cwSqueeze(const std::string &s)
 {
    std::string r;
    for (char c : s) if (!(c == ' ' && (r.empty() || r.back() == ' '))) r += c;
