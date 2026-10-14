@@ -17,6 +17,8 @@ jobs:
         run: host/tests/equiv.sh
       - name: Chaîne 48 kHz -> décimation -> file -> cœur, alignement du scope
         run: host/build/decim_test 20 900 3
+      - name: Simulation du sketch complet (harnais, commandes série, scope)
+        run: host/tests/sim_test.sh
 
   teensy40:
     name: arduino-cli compile (Teensy 4.0)

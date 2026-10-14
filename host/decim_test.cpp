@@ -10,68 +10,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <string>
-#include <vector>
 #include "../RSCW_Teensy/rscw_core.h"
 #include "../RSCW_Teensy/rscw_decim.h"
 
-static const char *MORSE[128];
-static void initMorse()
-{
-   const char *tab[][2] = {
-      {"A",".-"},{"B","-..."},{"C","-.-."},{"D","-.."},{"E","."},{"F","..-."},{"G","--."},{"H","...."},
-      {"I",".."},{"J",".---"},{"K","-.-"},{"L",".-.."},{"M","--"},{"N","-."},{"O","---"},{"P",".--."},
-      {"Q","--.-"},{"R",".-."},{"S","..."},{"T","-"},{"U","..-"},{"V","...-"},{"W",".--"},{"X","-..-"},
-      {"Y","-.--"},{"Z","--.."},{"0","-----"},{"1",".----"},{"2","..---"},{"3","...--"},{"4","....-"},
-      {"5","....."},{"6","-...."},{"7","--..."},{"8","---.."},{"9","----."},{"/","-..-."},{"=","-...-"},{"?","..--.."}};
-   for (auto &t : tab) MORSE[(int)t[0][0]] = t[1];
-}
-
-/* séquence de points (1 = porteuse) comme noisycw : élément + 1 espace, lettre + 2, mot = 4 */
-static std::vector<char> keying(const char *txt)
-{
-   std::vector<char> k;
-   for (const char *p = txt; *p; p++) {
-      if (*p == ' ') { for (int i = 0; i < 4; i++) k.push_back(0); continue; }
-      const char *m = MORSE[(int)*p];
-      if (!m) continue;
-      for (; *m; m++) {
-         int n = (*m == '.') ? 1 : 3;
-         for (int i = 0; i < n; i++) k.push_back(1);
-         k.push_back(0);
-      }
-      k.push_back(0); k.push_back(0);
-   }
-   return k;
-}
-
-static uint64_t rng = 1;
-static double urand() { rng = rng * 6364136223846793005ULL + 1442695040888963407ULL; return ((rng >> 11) + 0.5) / 9007199254740992.0; }
-static double grand() { return sqrt(-2 * log(urand())) * cos(2 * M_PI * urand()); }
+#include "cwgen.h"
 
 static std::string out;
 static void onChar(char c, void *) { out += c; }
-
-static int editDistance(const std::string &a, const std::string &b)
-{
-   std::vector<int> d(b.size() + 1), e(b.size() + 1);
-   for (size_t j = 0; j <= b.size(); j++) d[j] = j;
-   for (size_t i = 1; i <= a.size(); i++) {
-      e[0] = i;
-      for (size_t j = 1; j <= b.size(); j++)
-         e[j] = std::min(std::min(d[j] + 1, e[j - 1] + 1), d[j - 1] + (a[i - 1] != b[j - 1]));
-      d.swap(e);
-   }
-   return d[b.size()];
-}
-
-static std::string squeeze(const std::string &s)
-{
-   std::string r;
-   for (char c : s) if (!(c == ' ' && (r.empty() || r.back() == ' '))) r += c;
-   while (!r.empty() && r.back() == ' ') r.pop_back();
-   return r;
-}
 
 static Rscw dec;
 /* vérification de l'alignement du scope : historique de la manipulation indexé par l'horloge du
@@ -85,12 +30,7 @@ static RscwSpscQueue<Smp, 4096> q;
 /* fs = 8000 : direct ; fs = 48000 : décimation + file */
 static double runOnce(const char *txt, double ebn0, float wpm, double freq, int fs, uint64_t seed)
 {
-   std::vector<char> k = keying(txt);
-   double dot8 = 8000 * 1.2 / wpm;
-   double asig = sqrt(pow(10, ebn0 / 10) / dot8 * 2);   /* noisycw */
-   double sig = sqrt(0.5 * fs / 8000.0);                  /* même N0 */
-   double scale = 1.0 / (5 * sqrt(0.5 * 6) + asig);       /* même échelle pour 8 et 48 kHz */
-   rng = seed;
+   CwGen g(txt, ebn0, wpm, freq, fs, seed);
    out.clear();
    dec.setWpm(wpm);
    dec.setFreqMode(Rscw::STRONGEST);
@@ -99,14 +39,11 @@ static double runOnce(const char *txt, double ebn0, float wpm, double freq, int 
    decim.design(48000, 6, 3800, 7);
    q.clear();
    keyHist.clear();
-   double ph = 0, dph = 2 * M_PI * freq / fs;
-   long nsamp = (long)((k.size() + 60) * dot8 * fs / 8000);   /* + 60 points de silence final */
+   long nsamp = g.length();
    Smp blk[128]; int nb = 0;
    for (long n = 0; n < nsamp; n++) {
-      long dot = (long)(n * 8000.0 / fs / dot8);
-      int key = (dot < (long)k.size()) ? k[dot] : 0;
-      float x = (float)(scale * (sig * grand() + (key ? asig * cos(ph) : 0)));
-      ph += dph; if (ph > 2 * M_PI) ph -= 2 * M_PI;
+      int key;
+      float x = g.next(&key);
       if (fs == 8000) { dec.push(x); continue; }
       float y;
       if (decim.push(x, &y)) { blk[nb].x = y; blk[nb].pins = key; nb++; }
@@ -129,13 +66,12 @@ static double runOnce(const char *txt, double ebn0, float wpm, double freq, int 
          }
       }
    }
-   std::string ref = squeeze(txt), got = squeeze(out);
-   return (double)editDistance(ref, got) / ref.size();
+   std::string ref = cwSqueeze(txt), got = cwSqueeze(out);
+   return (double)cwEditDistance(ref, got) / ref.size();
 }
 
 int main(int argc, char **argv)
 {
-   initMorse();
    float wpm = argc > 1 ? atof(argv[1]) : 20;
    double freq = argc > 2 ? atof(argv[2]) : 900;
    int trials = argc > 3 ? atoi(argv[3]) : 4;
@@ -151,16 +87,17 @@ int main(int argc, char **argv)
    }
    printf("\n");
 
-   printf("wpm=%g f=%g Hz, %d essais ; CER direct 8 kHz | 48 kHz + decimation + file\n", wpm, freq, trials);
+   printf("wpm=%g f=%g Hz, %d essais ; CER direct 8 kHz | 48 kHz + decimation + file | erreurs bit dur (48 kHz)\n", wpm, freq, trials);
    int fail = 0;
    for (double eb : {20.0, 14.0, 10.0, 8.0}) {
       double c8 = 0, c48 = 0;
+      alignN = alignOk = 0;
       for (int t = 0; t < trials; t++) {
          c8 += runOnce(txt, eb, wpm, freq, 8000, 1000 + t);
          c48 += runOnce(txt, eb, wpm, freq, 48000, 1000 + t);
       }
       c8 /= trials; c48 /= trials;
-      printf("Eb/N0 %5.1f dB : CER %6.3f | %6.3f\n", eb, c8, c48);
+      printf("Eb/N0 %5.1f dB : CER %6.3f | %6.3f | %5.1f%%\n", eb, c8, c48, alignN ? 100.0 * (alignN - alignOk) / alignN : 0.0);
       if (eb >= 20 && c48 > 0.02) fail = 1;           /* à fort SNR la chaîne doit être propre */
    }
    /* alignement scope à fort SNR */
