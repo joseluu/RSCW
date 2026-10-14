@@ -74,6 +74,10 @@ static std::string squeeze(const std::string &s)
 }
 
 static Rscw dec;
+/* vérification de l'alignement du scope : historique de la manipulation indexé par l'horloge du
+   cœur (comme AudioRSCW_F32::pinsAt), comparé au bit lu par bitAt(T), T = time - scopeDelay() */
+static std::vector<uint8_t> keyHist;
+static long alignN, alignOk;
 static RscwDecimator<181> decim;
 struct Smp { float x; uint8_t pins; };
 static RscwSpscQueue<Smp, 4096> q;
@@ -94,6 +98,7 @@ static double runOnce(const char *txt, double ebn0, float wpm, double freq, int 
    dec.begin(onChar, 0);
    decim.design(48000, 6, 3800, 7);
    q.clear();
+   keyHist.clear();
    double ph = 0, dph = 2 * M_PI * freq / fs;
    long nsamp = (long)((k.size() + 60) * dot8 * fs / 8000);   /* + 60 points de silence final */
    Smp blk[128]; int nb = 0;
@@ -109,7 +114,19 @@ static double runOnce(const char *txt, double ebn0, float wpm, double freq, int 
          for (int i = 0; i < nb; i++) q.push(blk[i]);
          nb = 0;
          Smp s;
-         while (q.pop(&s)) dec.push(s.x);
+         while (q.pop(&s)) {
+            dec.push(s.x);
+            int t = dec.time();
+            if (t >= 0) { if ((size_t)t >= keyHist.size()) keyHist.resize(t + 1); keyHist[t] = s.pins; }
+            if (t > 0 && t % 80 == 0) {                   /* toutes les 10 ms, comme le scope */
+               int T = t - dec.scopeDelay();
+               float soft, thr;
+               if (T > 0 && dec.bitAt(T, &soft, &thr) && (size_t)T < keyHist.size()) {
+                  alignN++;
+                  if ((soft > 0) == (keyHist[T] != 0)) alignOk++;
+               }
+            }
+         }
       }
    }
    std::string ref = squeeze(txt), got = squeeze(out);
@@ -146,6 +163,12 @@ int main(int argc, char **argv)
       printf("Eb/N0 %5.1f dB : CER %6.3f | %6.3f\n", eb, c8, c48);
       if (eb >= 20 && c48 > 0.02) fail = 1;           /* à fort SNR la chaîne doit être propre */
    }
+   /* alignement scope à fort SNR */
+   alignN = alignOk = 0;
+   runOnce(txt, 25, wpm, freq, 48000, 7);
+   double al = alignN ? (double)alignOk / alignN : 0;
+   printf("alignement scope (Eb/N0 25 dB) : bit RSCW = manipulation reelle sur %.1f%% de %ld points\n", 100 * al, alignN);
+   if (al < 0.9) fail = 1;
    printf("queue: highWater=%u dropped=%u\n", q.highWater, (unsigned)q.dropped);
    return fail;
 }

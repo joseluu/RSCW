@@ -747,11 +747,14 @@ float Rscw::magAt(int t) const
    return bf[(bfw - 1 - back) & BFMASK];
 }
 
+/* L'horodatage d'un bit (bY dans rscw.c) est le CENTRE du point échantillonné : le bit couvre
+ * [t_bit - point/2, t_bit + point/2). On cherche donc le dernier bit avec t_bit <= t + point/2. */
 bool Rscw::bitAt(int t, float *soft, float *thr) const
 {
+   int tc = t + (int)(dotSamples() / 2);
    for (uint k = 1; k <= BHMASK; k++) {
       const BitHist &h = bH[(bhw - k) & BHMASK];
-      if (h.t <= t) {
+      if (h.t <= tc) {
          if (h.t < -0x3fffffff) return false;
          *soft = h.soft; *thr = h.thr;
          return true;

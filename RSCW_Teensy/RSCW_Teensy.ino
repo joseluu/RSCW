@@ -266,6 +266,7 @@ void setup() {
   drawMenu();
   displayVersion();
   resetDecoder();                     // ignore l'audio accumulé pendant l'écran d'accueil
+  rscw.resetStats();                  // (et les pertes de file correspondantes)
 }
 
 // ----------------------------

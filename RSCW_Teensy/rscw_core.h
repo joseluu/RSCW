@@ -80,7 +80,7 @@ public:
    bool carrierFound() const { return lastSearchOk; }
    float lastMag() const { return bf[(bfw - 1) & BFMASK]; }
    float magAt(int t) const;                         /* module bf à l'instant t (0 si hors historique) */
-   bool bitAt(int t, float *soft, float *thr) const; /* dernier bit dont l'horodatage <= t */
+   bool bitAt(int t, float *soft, float *thr) const; /* bit dont l'intervalle (centré) contient t */
    int latestBitTime() const { return bH[(bhw - 1) & BHMASK].t; }
    float dotSamples() const { return (float)(SAMP * 1.2 / WPM); } /* durée d'un point à 8 kHz */
    int scopeDelay() const;                           /* retard conseillé pour l'affichage (éch. 8 kHz) */

@@ -15,7 +15,7 @@ jobs:
         run: make -C host all
       - name: Équivalence rscw_host / rscw d'origine
         run: host/tests/equiv.sh
-      - name: Chaîne 48 kHz -> décimation -> file -> cœur
+      - name: Chaîne 48 kHz -> décimation -> file -> cœur, alignement du scope
         run: host/build/decim_test 20 900 3
 
   teensy40:
