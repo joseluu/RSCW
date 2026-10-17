@@ -26,7 +26,7 @@
 #include "AudioMixer11_F32.h"
 #include "AudioSignalGenerator_F32.h"
 
-#define VERSION "0.1.0 2026-10-14 RSCW 0.1e"
+#define VERSION "0.1.1 2026-10-17 RSCW 0.1e + set avg"
 #define AUTEUR " RSCW de PA3FWM"
 
 //------------------------------- affichage
@@ -428,6 +428,7 @@ void cmdHelp() {
   Serial.println("  set gain <value>      - set gain (0.1, 1.0, 10.0)");
   Serial.println("  set siggen <mode>     - set signal gen (0-6)");
   Serial.println("  set wpm <5..60>       - morse speed (RSCW needs it; resets the decoder)");
+  Serial.println("  set avg <0.25..1.5>   - moving-average window in dot times (1.0 = original RSCW; resets the decoder)");
   Serial.println("  set fmode strongest|track - carrier search mode (as rscw -s / -t)");
   Serial.println("  set freq <Hz>         - fixed carrier frequency (as rscw -f Hz)");
   Serial.println("  set range <fmin> <fmax> - carrier search range (as rscw -f fmin-fmax)");
@@ -462,6 +463,7 @@ void cmdStatus() {
   Serial.println(d.wpm(), 1);
   Serial.print("Decoder: RSCW ");
   Serial.println(VERSION);
+  Serial.printf("avg=%.2f ", d.avgFactor());
   Serial.printf("wpm=%.1f fmode=%s fmin=%.1f fmax=%.1f log=%d\n", d.wpm(), fmodeName(), d.fmin(), d.fmax(), logOn ? 1 : 0);
   Serial.printf("carrier=%.1f found=%d\n", d.carrier(), d.carrierFound() ? 1 : 0);
   Serial.printf("dot=%.1fms delay=%.0fms chars=%lu msgs=%d msgmax=%d msgovf=%lu\n",
@@ -560,6 +562,15 @@ void executeCommand(char* cmd) {
         Serial.printf("wpm = %.1f (decoder reset)\n", d.wpm());
       } else {
         Serial.println("Error: wpm must be 5..60");
+      }
+    } else if (strncmp(arg, "avg ", 4) == 0) {
+      float f = atof(arg + 4);
+      if (f >= 0.25f && f <= 1.5f) {
+        d.setAvgFactor(f);
+        resetDecoder();
+        Serial.printf("avg = %.2f dot (decoder reset)\n", d.avgFactor());
+      } else {
+        Serial.println("Error: avg must be 0.25..1.5");
       }
     } else if (strncmp(arg, "fmode ", 6) == 0) {
       const char* m = arg + 6;

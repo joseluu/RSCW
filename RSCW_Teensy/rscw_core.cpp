@@ -48,7 +48,7 @@ static RSCW_BIGBUF float g_bm[Rscw::BMMASK + 1];
 static RSCW_BIGBUF double g_fftz[Rscw::FFTBLOCKSIZE];
 
 Rscw::Rscw()
-   : WPM(22), fmode(STRONGEST), Fmin(1), Fmax(SAMP / 2 - 1), ffmin(1), ffmax(SAMP / 2 - 1),
+   : WPM(22), AVGF(1.0f), fmode(STRONGEST), Fmin(1), Fmax(SAMP / 2 - 1), ffmin(1), ffmax(SAMP / 2 - 1),
      lastSearchOk(false), onChar(0), onCharCtx(0),
      br(g_br), bdi(g_bdi), bdq(g_bdq), bsi(g_bsi), bsq(g_bsq), bf(g_bf), bm(g_bm),
      fftz(g_fftz),
@@ -657,18 +657,19 @@ void Rscw::push(float sample)
    }
 
    /* calculate magnitude of moving average over one dot-time */
-   while (bft+DOWN < bst-DOWN*DOTLEN/2) {
+   const double AVGLEN = DOTLEN*AVGF;   /* extension : fenêtre = AVGF points (AVGF=1 : identique à l'original) */
+   while (bft+DOWN < bst-DOWN*AVGLEN/2) {
       int i,i0;
       float si,sq;
       bft+=DOWN;
       i0 = bsw - (bst-bft)/DOWN;
       si=sq=0;
-      for (i=-DOTLEN/2;i<DOTLEN/2;i++) {
+      for (i=-AVGLEN/2;i<AVGLEN/2;i++) {
          si+=bsi[(i0+i)&BSMASK];
          sq+=bsq[(i0+i)&BSMASK];
       }
-      si/=DOTLEN;
-      sq/=DOTLEN;
+      si/=AVGLEN;
+      sq/=AVGLEN;
       bf[bfw] = sqrt((double)(si*si+sq*sq));
       bfw = (bfw+1)&BFMASK;
       bfwOrig = (bfwOrig+1)&BFMASK_ORIG;

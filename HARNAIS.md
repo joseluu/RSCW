@@ -169,9 +169,10 @@ Ligne 5 (scope) : l'appui demande une capture série et fait clignoter la barre 
 | `set fmode track` | `-t` | poursuite : pic accepté s'il dépasse 2× la moyenne, fenêtre ±20 Hz |
 | `set freq <Hz>` | `-f Hz` | porteuse fixe |
 | `set range <fmin> <fmax>` | `-f fmin-fmax` | plage de recherche |
+| `set avg <0.25..1.5>` | — (extension) | fenêtre de la moyenne glissante, en durées de point (défaut 1.0 = RSCW d'origine) ; réinitialise le décodeur, prévu pour les campagnes d'optimisation |
 | `freq` | — | `freq: <Hz> found=<0\|1>` : porteuse estimée par la dernière FFT |
 
-Chacune réinitialise le décodeur. Défaut au démarrage : 20 WPM, `strongest`, 1–3999 Hz.
+Chacune réinitialise le décodeur. Défaut au démarrage : 20 WPM, `strongest`, 1–3999 Hz, `avg` 1.0.
 
 ### 5.3 Sortie de `status`
 
@@ -182,7 +183,7 @@ Gain: 1.0
 Sig Gen: 1.0
 WPM: 20.0
 Decoder: RSCW 0.1.0 2026-10-14 RSCW 0.1e
-wpm=20.0 fmode=strongest fmin=1.0 fmax=3999.0 log=0
+avg=1.00 wpm=20.0 fmode=strongest fmin=1.0 fmax=3999.0 log=0
 carrier=900.4 found=1
 dot=60.0ms delay=2682ms chars=<n> msgs=<n> msgmax=<n> msgovf=<n>
 fs_i2s=48000 decim=6 queue_max=<n> queue_drop=<n> proc_max_us=<n> cpu=<%> mem_f32_max=<n>

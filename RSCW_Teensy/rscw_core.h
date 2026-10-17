@@ -68,6 +68,8 @@ public:
    /* réglages (comme les options de la ligne de commande de rscw) */
    void setWpm(float w);                             /* -w ; à faire suivre de reset() */
    float wpm() const { return WPM; }
+   void setAvgFactor(float f) { if (f < 0.25f) f = 0.25f; if (f > 1.5f) f = 1.5f; AVGF = f; }  /* fenêtre de la moyenne glissante = f points (1.0 = RSCW d'origine) */
+   float avgFactor() const { return AVGF; }
    void setFreqMode(int mode) { fmode = mode; }      /* -s / -t */
    int freqMode() const { return fmode; }
    void setRange(double fmin, double fmax);          /* -f fmin-fmax (ou fmin==fmax : fixe) */
@@ -106,6 +108,7 @@ private:
 
    /* paramètres */
    float WPM;
+   float AVGF;                           /* fenêtre de moyenne glissante en points (extension, 1.0 = original) */
    int fmode;
    double Fmin, Fmax, ffmin, ffmax;
    bool lastSearchOk;

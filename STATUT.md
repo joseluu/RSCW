@@ -29,6 +29,11 @@ Plan : [PLAN.md](PLAN.md). Ce fichier est mis à jour à chaque étape (le plus 
 
 ## Journal
 
+### 2026-10-17 (soir) — `set avg` et investigation 0 dB / 10 WPM
+
+- Extension `set avg <0.25..1.5>` (`Rscw::setAvgFactor`) : fenêtre de la moyenne glissante de l'étage `bf`, en durées de point. **Défaut 1.0 = comportement d'origine** : `host/tests/equiv.sh` 30/30 identiques. Firmware `0.1.1 2026-10-17 RSCW 0.1e + set avg`, `status` affiche `avg=`. Destiné aux campagnes d'optimisation.
+- Investigation 0 dB / 10 WPM (codeur 1.6.23, 300 s par point après 60 s de stabilisation, ≈ 256 caractères) : CER ≈ 3 % (2,0 à 4,5 %), erreurs = points isolés perdus ou ajoutés. Ni `set wpm` de 9,8 à 10,3 (3,25 / 2,85 / 2,44 / 3,66 / 0,41 / 3,66 et 2,44 %) ni `avg` de 0,5 à 1,25 (2,0 à 4,5 %, résultats non reproductibles d'un passage à l'autre, dispersion jusqu'à 2,4 points) ne le ramènent à 0 %. Cause non identifiée.
+
 ### 2026-10-17 — essai sur le banc réel (étape 8) : CER vs SNR
 
 - Flashé sur la carte décodeur (`status` : `Decoder: RSCW 0.1.0 …`, porteuse 900,4 Hz, `queue_drop=0`, `msgovf=0`). Compilation sur cette machine : Bounce2 installé (2.55) sans namespace, compilé avec le Bounce2 du commit CI (`--libraries`).
