@@ -33,20 +33,24 @@ Plan : [PLAN.md](PLAN.md). Ce fichier est mis à jour à chaque étape (le plus 
 
 - Flashé sur la carte décodeur (`status` : `Decoder: RSCW 0.1.0 …`, porteuse 900,4 Hz, `queue_drop=0`, `msgovf=0`). Compilation sur cette machine : Bounce2 installé (2.55) sans namespace, compilé avec le Bounce2 du commit CI (`--libraries`).
 - `set wpm` existe déjà (5–60) : aucun réglage série ajouté.
-- CER (%) à 10/15/20 WPM, défauts RSCW, un passage de 150 s par point :
+- CER (%) à 10/15/20 WPM, 2e série (codeur 1.6.23, 60 s de stabilisation, un passage de 150 s par point, 190 à 260 caractères, sans espaces, défauts RSCW hors `set wpm`) :
 
 | SNR (dB) | 10 WPM | 15 WPM | 20 WPM |
 |---|---|---|---|
-| 0 | 3,3 | 2,4 | 2,4 |
-| −4 | 8,1 | 2,4 | 2,4 |
-| −8 | 17,1 | 11,0 | 6,5 |
-| −10 | 16,3 | 32,9 | 16,3 |
-| −12 | 40,7 | 45,1 | 38,6 |
-| −14 | 71,5 | 65,4 | 62,2 |
-| −16 | 78,9 | 79,9 | 78,9 |
-| −18 | 81,3 | 81,0 | 80,5 |
+| 0 | 2,4 | 0,6 | 0,0 |
+| −4 | 8,9 | 0,6 | 0,0 |
+| −8 | 12,2 | 4,3 | 5,7 |
+| −10 | 22,8 | 23,2 | 20,3 |
+| −12 | 45,5 | 42,4 | 40,2 |
+| −14 | 69,5 | 62,2 | 74,8 |
+| −16 | 81,3 | 78,0 | 78,5 |
+| −18 | 79,7 | 78,0 | 80,1 |
 
-Détail et réserves : `STATUT_COMPARATIF.md` §8 du dépôt parent (campagne `bench/rscw_chain.sh`).
+- Conclusions :
+  - Presque sans erreur à 0 et −4 dB à 15 et 20 WPM (0 à 0,6 %). Une 1re série avec l'ancien codeur (sans espace aux extrémités du message) donnait 2,4 % : le `CW` final était décodé `CP` à chaque tour de boucle. Le gain vient probablement des espaces du nouveau codeur, non isolé de la stabilisation plus longue.
+  - Décrochage entre −10 et −14 dB aux trois vitesses ; plafond ≈ 80 % au-delà de −16 dB.
+  - Dispersion d'un passage unique de 5 à 12 points dans la zone de transition (comparaison des deux séries) : plusieurs passages par point seraient nécessaires pour trancher dans cette zone.
+  - À 20 WPM / −10 dB (20,3 %), RSCW non optimisé est au niveau du Goertzel optimisé, derrière le cohérent et le K4ICY. Détail et comparaison des deux séries : `STATUT_COMPARATIF.md` §8 du dépôt parent (`bench/rscw_chain.sh`, `bench/rscw_chain2.sh`).
 
 ### 2026-10-15 — sketch, CI, simulation du sketch complet
 
