@@ -13,7 +13,7 @@ Plan : [PLAN.md](PLAN.md). Ce fichier est mis à jour à chaque étape (le plus 
 | 5. Objet audio (décimation, file) | fait | `decim_test` : même CER qu'en 8 kHz direct, file sans perte |
 | 6. Sketch harnais + CI arduino-cli | fait | CI verte : `arduino-cli compile` teensy40 (core 1.62.0) + simulation du sketch |
 | 7. Documentation | fait | `README.md`, `HARNAIS.md` |
-| 8. Essai sur le banc réel | **à faire (utilisateur)** | voir « Reste à faire » |
+| 8. Essai sur le banc réel | fait (2026-10-17) | voir « Reste à faire » |
 
 ## Reste à faire (nécessite le matériel)
 
@@ -28,6 +28,25 @@ Plan : [PLAN.md](PLAN.md). Ce fichier est mis à jour à chaque étape (le plus 
    Morse_decode_coherent à 43,2 kHz), niveau d'entrée (`peak`), rendu réel de l'écran.
 
 ## Journal
+
+### 2026-10-17 — essai sur le banc réel (étape 8) : CER vs SNR
+
+- Flashé sur la carte décodeur (`status` : `Decoder: RSCW 0.1.0 …`, porteuse 900,4 Hz, `queue_drop=0`, `msgovf=0`). Compilation sur cette machine : Bounce2 installé (2.55) sans namespace, compilé avec le Bounce2 du commit CI (`--libraries`).
+- `set wpm` existe déjà (5–60) : aucun réglage série ajouté.
+- CER (%) à 10/15/20 WPM, défauts RSCW, un passage de 150 s par point :
+
+| SNR (dB) | 10 WPM | 15 WPM | 20 WPM |
+|---|---|---|---|
+| 0 | 3,3 | 2,4 | 2,4 |
+| −4 | 8,1 | 2,4 | 2,4 |
+| −8 | 17,1 | 11,0 | 6,5 |
+| −10 | 16,3 | 32,9 | 16,3 |
+| −12 | 40,7 | 45,1 | 38,6 |
+| −14 | 71,5 | 65,4 | 62,2 |
+| −16 | 78,9 | 79,9 | 78,9 |
+| −18 | 81,3 | 81,0 | 80,5 |
+
+Détail et réserves : `STATUT_COMPARATIF.md` §8 du dépôt parent (campagne `bench/rscw_chain.sh`).
 
 ### 2026-10-15 — sketch, CI, simulation du sketch complet
 
